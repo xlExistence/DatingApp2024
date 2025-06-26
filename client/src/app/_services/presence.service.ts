@@ -25,7 +25,7 @@ export class PresenceService {
       this.toastr.info(username + " is online!")
     });
     this.hubConnection.on("UserIsOffline", username => {
-      this.toastr.info(username + " went out to touch some grass!")
+      this.toastr.warning(username + " went out to touch some grass!")
     });
   }
 

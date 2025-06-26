@@ -2,6 +2,7 @@ namespace API.Extensions;
 using API.Data;
 using API.Helpers;
 using API.Services;
+using API.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 public static class ApplicationServiceExtensions
@@ -20,6 +21,7 @@ public static class ApplicationServiceExtensions
         services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
         services.Configure<CloudinarySettings>(config.GetSection("CloudinarySettings"));
         services.AddSignalR();
+        services.AddSingleton<PresenceTracker>();
 
         return services;
     }
