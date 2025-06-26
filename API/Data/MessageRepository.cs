@@ -68,7 +68,7 @@ public class MessageRepository(DataContext context, IMapper mapper) : IMessageRe
     public async Task<bool> SaveAllAsync() => await context.SaveChangesAsync() > 0;
     public void AddGroup(MessageGroup group) => context.Groups.Add(group);
 
-    public void RemoveGroup(Connection connection) => context.Connections.Remove(connection);
+    public void RemoveConnection(Connection connection) => context.Connections.Remove(connection);
 
     public async Task<Connection?> GetConnectionAsync(string connectionId)
         => await context.Connections.FindAsync(connectionId);
