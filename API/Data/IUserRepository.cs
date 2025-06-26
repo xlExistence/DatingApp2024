@@ -11,6 +11,5 @@ public interface IUserRepository
     public Task<AppUser?> GetByUsernameAsync(string username);
     public Task<MemberResponse?> GetMemberAsync(string username);
     public Task<PagedList<MemberResponse>> GetMembersAsync(UserParams userParams);
-    public Task<bool> SaveAllAsync();
     public void Update(AppUser user);
 }

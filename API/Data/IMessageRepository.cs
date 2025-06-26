@@ -16,6 +16,4 @@ public interface IMessageRepository
     public Task<IEnumerable<MessageResponse>> GetThreadAsync(string currentUsername, string recipientUsername);
     public void Remove(Message message);
     public void RemoveConnection(Connection connection);
-    public Task<bool> SaveAllAsync();
-
 }
