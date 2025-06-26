@@ -5,12 +5,12 @@ using API.Data;
 using API.DataEntities;
 using API.DTOs;
 using API.Extensions;
+using API.UnitOfWork;
 using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 
 public class MessageHub(
-    IMessageRepository messagesRepository,
-    IUserRepository userRepository,
+    IUnitOfWork unitOfWork,
     IMapper mapper,
     IHubContext<PresenceHub> presenceHub) : Hub
 {
@@ -29,7 +29,12 @@ public class MessageHub(
 
         await Clients.Group(groupName).SendAsync("UpdatedGroup", messageGroup);
 
-        var messages = await messagesRepository.GetThreadAsync(Context.User.GetUserName(), otherUser!);
+        var messages = await unitOfWork.MessageRepository.GetThreadAsync(Context.User.GetUserName(), otherUser!);
+
+        if (unitOfWork.HasChanges())
+        {
+            await unitOfWork.Complete();
+        }
 
         await Clients.Caller.SendAsync("ReceiveMessageThread", messages);
     }
@@ -50,8 +55,8 @@ public class MessageHub(
             throw new HubException("You cannnot message yourself");
         }
 
-        var sender = await userRepository.GetByUsernameAsync(username);
-        var recipient = await userRepository.GetByUsernameAsync(messageRequest.RecipientUsername);
+        var sender = await unitOfWork.UserRepository.GetByUsernameAsync(username);
+        var recipient = await unitOfWork.UserRepository.GetByUsernameAsync(messageRequest.RecipientUsername);
 
         if (recipient == null || sender == null || sender.UserName == null || recipient.UserName == null)
         {
@@ -68,7 +73,7 @@ public class MessageHub(
         };
 
         var groupName = GetGroupName(sender.UserName, recipient.UserName);
-        var group = await messagesRepository.GetMessageGroupAsync(groupName);
+        var group = await unitOfWork.MessageRepository.GetMessageGroupAsync(groupName);
 
         if (group != null && group.Connections.Any(x => x.Username == recipient.UserName))
         {
@@ -84,9 +89,9 @@ public class MessageHub(
             }
         }
 
-        messagesRepository.Add(message);
+        unitOfWork.MessageRepository.Add(message);
 
-        if (await messagesRepository.SaveAllAsync())
+        if (await unitOfWork.Complete())
         {
             await Clients.Group(groupName).SendAsync("NewMessage", mapper.Map<MessageResponse>(message));
         }
@@ -95,7 +100,7 @@ public class MessageHub(
     private async Task<MessageGroup> AddToMessageGroupAsync(string groupName)
     {
         var username = Context.User?.GetUserName() ?? throw new ArgumentException("Cannot get username");
-        var group = await messagesRepository.GetMessageGroupAsync(groupName);
+        var group = await unitOfWork.MessageRepository.GetMessageGroupAsync(groupName);
         var connection = new Connection
         {
             ConnectionId = Context.ConnectionId,
@@ -105,12 +110,12 @@ public class MessageHub(
         if (group == null)
         {
             group = new MessageGroup { Name = groupName };
-            messagesRepository.AddGroup(group);
+            unitOfWork.MessageRepository.AddGroup(group);
         }
 
         group.Connections.Add(connection);
 
-        if (await messagesRepository.SaveAllAsync())
+        if (await unitOfWork.Complete())
         {
             return group;
         }
@@ -120,12 +125,12 @@ public class MessageHub(
 
     private async Task<MessageGroup> RemoveFromMessageGroupAsync()
     {
-        var messageGroup = await messagesRepository.GetMessageGroupForConnectionAsync(Context.ConnectionId);
+        var messageGroup = await unitOfWork.MessageRepository.GetMessageGroupForConnectionAsync(Context.ConnectionId);
         var connection = messageGroup?.Connections.FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);
         if (connection != null && messageGroup != null)
         {
-            messagesRepository.RemoveConnection(connection);
-            if (await messagesRepository.SaveAllAsync())
+            unitOfWork.MessageRepository.RemoveConnection(connection);
+            if (await unitOfWork.Complete())
             {
                 return messageGroup;
             }

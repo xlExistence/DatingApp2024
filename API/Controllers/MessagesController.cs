@@ -6,14 +6,14 @@ using API.DataEntities;
 using API.DTOs;
 using API.Extensions;
 using API.Helpers;
+using API.UnitOfWork;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [Authorize]
 public class MessagesController
-    (IMessageRepository messageRepository,
-    IUserRepository userRepository,
+    (IUnitOfWork unitOfWork,
     IMapper mapper) : BaseApiController
 {
     [HttpPost]
@@ -26,8 +26,8 @@ public class MessagesController
             return BadRequest("You can't message yourself!");
         }
 
-        var sender = await userRepository.GetByUsernameAsync(username);
-        var recipient = await userRepository.GetByUsernameAsync(request.RecipientUsername);
+        var sender = await unitOfWork.UserRepository.GetByUsernameAsync(username);
+        var recipient = await unitOfWork.UserRepository.GetByUsernameAsync(request.RecipientUsername);
 
         if (recipient == null || sender == null || sender.UserName == null || recipient.UserName == null)
         {
@@ -43,9 +43,9 @@ public class MessagesController
             Content = request.Content
         };
 
-        messageRepository.Add(message);
+        unitOfWork.MessageRepository.Add(message);
 
-        if (await messageRepository.SaveAllAsync())
+        unitOfWork.MessageRepository.Add(message);
         {
             return Ok(mapper.Map<MessageResponse>(message));
         }
@@ -58,25 +58,23 @@ public class MessagesController
         [FromQuery] MessageParams messageParams)
     {
         messageParams.Username = User.GetUserName();
-        var messages = await messageRepository.GetForUserAsync(messageParams);
+        var messages = await unitOfWork.MessageRepository.GetForUserAsync(messageParams);
         Response.AddPaginationHeader(messages);
         return messages;
     }
-
 
     [HttpGet("thread/{username}")]
     public async Task<ActionResult<IEnumerable<MessageResponse>>> GetMessageThread(string username)
     {
         var currentUsername = User.GetUserName();
-        return Ok(await messageRepository.GetThreadAsync(currentUsername, username));
+        return Ok(await unitOfWork.MessageRepository.GetThreadAsync(currentUsername, username));
     }
-
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteMessage(int id)
     {
         var username = User.GetUserName();
-        var message = await messageRepository.GetAsync(id);
+        var message = await unitOfWork.MessageRepository.GetAsync(id);
 
         if (message == null)
         {
@@ -100,10 +98,10 @@ public class MessagesController
 
         if (message is { SenderDeleted: true, RecipientDeleted: true })
         {
-            messageRepository.Remove(message);
+            unitOfWork.MessageRepository.Remove(message);
         }
 
-        if (await messageRepository.SaveAllAsync())
+        if (await unitOfWork.Complete())
         {
             return Ok();
         }
