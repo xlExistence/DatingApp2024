@@ -8,7 +8,11 @@ using API.Extensions;
 using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 
-public class MessageHub(IMessageRepository messagesRepository, IUserRepository userRepository, IMapper mapper) : Hub
+public class MessageHub(
+    IMessageRepository messagesRepository,
+    IUserRepository userRepository,
+    IMapper mapper,
+    IHubContext<PresenceHub> presenceHub) : Hub
 {
     public override async Task OnConnectedAsync()
     {
@@ -65,6 +69,15 @@ public class MessageHub(IMessageRepository messagesRepository, IUserRepository u
         if (group != null && group.Connections.Any(x => x.Username == recipient.UserName))
         {
             message.DateRead = DateTime.UtcNow;
+        }
+        else
+        {
+            var connections = await PresenceTracker.GetConnectionsForUser(recipient.UserName);
+            if (connections != null && connections?.Count != null)
+            {
+                await presenceHub.Clients.Clients(connections)
+                    .SendAsync("NewMessageReceived", new { username = sender.UserName, knownAs = sender.KnownAs });
+            }
         }
 
         messagesRepository.Add(message);
