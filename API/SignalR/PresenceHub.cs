@@ -14,10 +14,10 @@ public class PresenceHub(PresenceTracker presenceTracker) : Hub
             throw new HubException("Cannot get the current user claim");
         }
 
-        await GetOnlineUsers();
+        await presenceTracker.UserConnected(Context.User.GetUserName(), Context.ConnectionId);
+        await Clients.Others.SendAsync("UserIsOnline", Context.User?.GetUserName());
 
-        var onlineUsers = await presenceTracker.GetOnlineUsers();
-        await Clients.All.SendAsync("GetOnlineUsers", onlineUsers);
+        await GetOnlineUsers();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
