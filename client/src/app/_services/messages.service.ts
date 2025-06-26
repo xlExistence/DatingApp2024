@@ -57,8 +57,9 @@ export class MessagesService {
     return this.http.get<Message[]>(this.baseUrl + "messages/thread/" + username);
   }
 
-  async sendMessage(username: string, content: string) {
-    return this.hubConnection?.invoke("SendMessage", { recipientUsername: username, content});
+  async sendMessageAsync(username: string, content: string) {
+    console.log("AQUÍ")
+    return this.hubConnection?.invoke("SendMessageAsync", { recipientUsername: username, content});
   }
 
   deleteMessage(id: number) {
