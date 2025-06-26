@@ -27,11 +27,11 @@ export class PresenceService {
     this.hubConnection.start().catch(error => console.log(error));
 
     this.hubConnection.on("UserIsOnline", username => {
-      this.toastr.info(username + " is online!");
+      this.onlineUsers.update(users => [...users, username]);
     });
 
     this.hubConnection.on("UserIsOffline", username => {
-      this.toastr.warning(username + " went out to touch some grass!");
+      this.onlineUsers.update(users => users.filter(u => u !== username));
     });
 
     this.hubConnection.on("GetOnlineUsers", usernames => {
