@@ -1,5 +1,4 @@
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
-import { MembersService } from '../../_services/members.service';
 import { ActivatedRoute } from '@angular/router';
 import { Member } from '../../_models/member';
 import { TabDirective, TabsetComponent, TabsModule } from 'ngx-bootstrap/tabs';
@@ -9,6 +8,7 @@ import { DatePipe } from '@angular/common';
 import { MemberMessagesComponent } from "../member-messages/member-messages.component";
 import { Message } from '../../_models/message';
 import { MessagesService } from '../../_services/messages.service';
+import { PresenceService } from '../../_services/presence.service';
 
 @Component({
   selector: 'app-member-detail',
@@ -19,8 +19,8 @@ import { MessagesService } from '../../_services/messages.service';
 })
 export class MemberDetailComponent implements OnInit{
   @ViewChild("memberTabs", { static: true }) memberTabs?: TabsetComponent;
-  private memberService = inject(MembersService);
   private messagesService = inject(MessagesService);
+  presenceService = inject(PresenceService);
   private route = inject(ActivatedRoute);
   member: Member = {} as Member;
   images: GalleryItem[] = [];
@@ -28,8 +28,6 @@ export class MemberDetailComponent implements OnInit{
   messages: Message[] = [];
 
   ngOnInit(): void {
-    // this.loadMember();
-
     this.route.data.subscribe({
       next: data => {
         this.member = data["member"];
